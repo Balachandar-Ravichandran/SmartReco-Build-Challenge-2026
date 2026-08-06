@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — Pathwise</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = '' %}
+  {% include "_nav_app.html" %}
+
+  <div class="admin-body">
+    <div class="admin-head">
+      <h2 style="margin:0;font-size:20px;">My Profile</h2>
+    </div>
+
+    <div class="sectiontitle" style="margin-top:0;">Your setup</div>
+    <div class="reccard" style="margin-bottom:26px;">
+      {% if onboarding %}
+      <div class="subline" style="margin-bottom:14px;">This is what seeds your recommendations before you've browsed anything. Pathwise keeps learning from your behavior on top of this.</div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Topics you picked</div>
+      <div class="chipgrid" style="margin-bottom:18px;">
+        {% for topic in onboarding.selected_topics %}
+        <div class="chip sel">{{ topic }}</div>
+        {% endfor %}
+      </div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Your objective</div>
+      <div class="goalgrid" style="margin-bottom:14px;">
+        <div class="goalcard sel" style="cursor:default;"><span class="ico">{{ onboarding.goal_icon|safe }}</span><h3>{{ onboarding.goal }}</h3></div>
+      </div>
+      {% else %}
+      <div class="subline" style="margin-bottom:14px;">You haven't set up your topics and goal yet.</div>
+      {% endif %}
+      <a class="btn secondary small" style="width:auto;display:inline-block;text-decoration:none;" href="/onboarding">Edit setup</a>
+    </div>
+
+    <div class="sectiontitle">Purchased</div>
+    {% if purchases %}
+    <table>
+      <tr><th>Item</th><th>Type</th><th>Purchased</th><th>Price paid</th></tr>
+      {% for p in purchases %}
+      <tr><td>{{ p.title }}</td><td>{{ p.item_type }}</td><td>{{ p.purchased_at }}</td><td>${{ "%.0f"|format(p.price_paid) }}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="reccard" style="margin-bottom:26px;">
+      <div class="subline" style="margin-bottom:0;">Nothing purchased yet — recommendations you start will show up here.</div>
+    </div>
+    {% endif %}
+
+    <div class="sectiontitle">Account</div>
+    <div class="formgrid" style="max-width:600px;">
+      <div><label>Email</label><input value="{{ email }}" disabled></div>
+      <div><label>Role</label><input value="{{ role|capitalize }}" disabled></div>
+    </div>
+
+    <div class="sectiontitle">Notifications</div>
+    <div class="reccard" style="margin-bottom:26px;">
+      <div class="subline" style="margin-bottom:14px;">Get a daily email with your personalized recommendations, sent once a day based on your latest activity.</div>
+      <form method="post" action="/web/profile/digest" style="display:flex;align-items:center;gap:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" name="digest_enabled" {% if digest_enabled %}checked{% endif %} onchange="this.form.submit()">
+          <span>Send me a daily recommendation email</span>
+        </label>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Added to cart</div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

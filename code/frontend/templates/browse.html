@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ ('Search: ' ~ q) if q else (topic if topic else "Browse") }} — Pathwise</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  {% import "_macros.html" as m %}
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = 'browse' %}
+  {% include "_nav_app.html" %}
+  {% set topcats_active = topic %}
+  {% include "_topcats.html" %}
+
+  <div class="home-body">
+    <div>
+      <div class="greeting">{{ ('Search results for “' ~ q ~ '”') if q else (topic if topic else "Browse the catalog") }}</div>
+      <div class="greeting-sub">
+        {% if paths %}{{ paths|length }} path{{ 's' if paths|length != 1 else '' }}{% endif %}
+        {% if paths and courses %} &middot; {% endif %}
+        {% if courses %}{{ courses|length }} course{{ 's' if courses|length != 1 else '' }}{% endif %}
+        {% if not paths and not courses and q %}No courses or paths match “{{ q }}”.{% endif %}
+        {% if not paths and not courses and not q %}Nothing in the catalog matches this topic yet.{% endif %}
+      </div>
+
+      {% if paths %}
+      <div class="sectiontitle" style="margin-top:8px;">Learning paths</div>
+      <div class="grid3">
+        {% for p in paths %}
+        <a class="coursecard" href="/path/{{ p.id }}">
+          <div class="thumb"><span>{{ p.tags[0] if p.tags else 'Path' }}</span></div>
+          <div class="body">
+            <h4>{{ p.title }}</h4>
+            <p>{{ p.description[:70] }}{{ '…' if p.description|length > 70 else '' }}</p>
+            <div class="cprice"><span>{{ p.course_count }} courses &middot; {{ p.duration_months }}mo</span><span>${{ "%.0f"|format(p.price) }}</span></div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if courses %}
+      <div class="sectiontitle">Courses</div>
+      <div class="grid3">
+        {% for c in courses %}
+        <a class="coursecard" href="/course/{{ c.id }}">
+          <div class="thumb"><span>{{ c.tags[0] if c.tags else '' }}</span></div>
+          <div class="body">
+            <h4>{{ c.title }}</h4>
+            <p>{{ c.description[:70] }}{{ '…' if c.description|length > 70 else '' }}</p>
+            <div class="cprice"><span>&#9733; {{ c.rating or '—' }} &middot; {{ c.learners_count }}</span><span>${{ "%.0f"|format(c.price) }}</span></div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="sidebarcol">
+      {{ m.signal_panel('signalpanel-browse', ticker, scores, reason) }}
+      {{ m.agent_recommended(rec, top_topic) }}
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Added to cart</div>
+  <script src="/static/tracking.js"></script>
+  <script src="/static/app.js"></script>
+  <script>
+    window.PATHWISE_USER_ID = "{{ user_id }}";
+  </script>
+</body>
+</html>

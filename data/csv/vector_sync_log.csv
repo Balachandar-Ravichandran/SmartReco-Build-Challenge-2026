@@ -1,0 +1,3 @@
+id,product_id,path_id,operation,sql_status,vector_status,synced_at,error_message
+1,crs_ai-engineer--by-sol,,insert,ok,ok,2025-10-13 09:00:00,
+2,,path_production-ai-engineer-path,insert,ok,ok,2025-10-18 09:00:00,

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathwise — Log in</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  <div class="login-wrap">
+    <div class="login-left">
+      <div class="logo"><span class="dot"></span>Pathwise</div>
+      <div class="signalchip"><span class="pulse"></span> agent watches &amp; reasons, live</div>
+      <h1>Learning that <span>meets you</span><br>where your behavior<br>actually goes.</h1>
+      <p>Pathwise tracks what you explore, quietly figures out where you're headed, and recommends the course — or the full path — that gets you there.</p>
+    </div>
+    <div class="login-right">
+      <div class="login-form">
+        <div class="roletoggle">
+          <button type="button" class="roletab sel" id="role-learner" onclick="selectRole('learner')">&#128100; Learner</button>
+          <button type="button" class="roletab" id="role-admin" onclick="selectRole('admin')">&#128737; Admin</button>
+        </div>
+        <h2 id="login-heading">Welcome back</h2>
+        <p class="sub" id="login-sub">Sign in to continue your path.</p>
+        <form method="post" action="/web/login">
+          <div class="field"><label>Email</label><input type="email" name="email" required autofocus></div>
+          <div class="field"><label>Password</label><input type="password" name="password" required></div>
+          <button class="btn" type="submit">Sign in</button>
+          {% if error %}<div class="formerror">{{ error }}</div>{% endif %}
+        </form>
+        <p class="switchline" id="login-switchline">New here? <a href="/signup">Create an account</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    function selectRole(role) {
+      document.getElementById('role-learner').classList.toggle('sel', role === 'learner');
+      document.getElementById('role-admin').classList.toggle('sel', role === 'admin');
+      if (role === 'admin') {
+        document.getElementById('login-heading').textContent = 'Admin sign in';
+        document.getElementById('login-sub').textContent = 'Manage the catalog, paths, and agent console.';
+        document.getElementById('login-switchline').innerHTML = 'Not an admin? <a href="/signup">Switch to learner sign in</a>';
+      } else {
+        document.getElementById('login-heading').textContent = 'Welcome back';
+        document.getElementById('login-sub').textContent = 'Sign in to continue your path.';
+        document.getElementById('login-switchline').innerHTML = 'New here? <a href="/signup">Create an account</a>';
+      }
+    }
+  </script>
+</body>
+</html>

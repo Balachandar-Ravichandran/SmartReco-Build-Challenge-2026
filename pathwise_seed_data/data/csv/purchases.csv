@@ -1,0 +1,5 @@
+id,user_id,product_id,path_id,price_paid,purchased_at
+1,usr_priya_learner,crs_retrieval-augmented-generation-basics,,129.0,2026-03-22 09:00:00
+2,usr_owen_learner,crs_ai-roi-for-business-leaders,,99.0,2026-03-27 09:00:00
+3,usr_lena_learner,,path_ai-product-builder-path,297.0,2026-04-01 09:00:00
+4,usr_ravi_learner,,path_mobile-ai-developer-path,348.0,2026-04-11 09:00:00

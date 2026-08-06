@@ -1,0 +1,7 @@
+{# Cart page's "Complete your learning" rail — rendered through the same
+   agent_recommended() macro as the real Agent Recommended block (headline,
+   badge, narrative, highlights, tile grid) so it's one consistent
+   recommendation component instead of a separately-styled one-off.
+   Expects: rec (SolverOutput-shaped dict), top_topic. #}
+{% import "_macros.html" as m %}
+{{ m.agent_recommended(rec, top_topic) }}

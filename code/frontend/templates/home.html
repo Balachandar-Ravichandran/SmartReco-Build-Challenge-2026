@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathwise — Home</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  {% import "_macros.html" as m %}
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = 'browse' %}
+  {% include "_nav_app.html" %}
+  {# Home isn't "on" any one topic page — top_topic here is the user's
+     personalized top interest (used to filter the rails below), not the
+     page's category, so it shouldn't highlight in the topic strip the way
+     an actual /browse?topic= visit does. #}
+  {% set topcats_active = None %}
+  {% include "_topcats.html" %}
+
+  <div class="home-body">
+    <div>
+      <div class="greeting">Welcome back, {{ display_name }} &#128075;</div>
+      <div class="greeting-sub">Here's what Pathwise is seeing right now.</div>
+
+      {% if recently_viewed %}
+      <div class="popwrap">
+        <div class="sectiontitle" style="margin-top:0;">Recently viewed</div>
+        <div class="railgrid">{{ m.product_cards(recently_viewed) }}</div>
+      </div>
+      {% endif %}
+
+      {{ m.agent_recommended(rec, top_topic) }}
+
+      {% if popular %}
+      <div class="popwrap">
+        <div class="sectiontitle" style="margin-top:0;">Popular based on your interest</div>
+        <div class="railgrid">{{ m.product_cards(popular) }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="sidebarcol">
+      {{ m.signal_panel('signalpanel-home', ticker, scores, reason) }}
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Added to cart</div>
+  <script src="/static/tracking.js"></script>
+  <script src="/static/app.js"></script>
+  <script>
+    window.PATHWISE_USER_ID = "{{ user_id }}";
+  </script>
+</body>
+</html>

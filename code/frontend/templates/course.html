@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ course.title if course else "Course" }} — Pathwise</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  {% import "_macros.html" as m %}
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = '' %}
+  {% include "_nav_app.html" %}
+  {% set topcats_active = course.tags[0] if course and course.tags else None %}
+  {% include "_topcats.html" %}
+
+  {% if course %}
+  <div class="cd-body">
+    <div class="cd-main">
+      <a class="breadcrumb" href="/">&#8592; Back to catalog</a>
+      <div class="cd-hero"><span>{{ course.tags[0] if course.tags else '' }}</span></div>
+      <div class="cd-tag">{{ course.tags[0] if course.tags else '' }}</div>
+      <h1>{{ course.title }}</h1>
+      <p class="desc">{{ course.description }}</p>
+      <div class="cd-meta">
+        <span>&#9733; <b>{{ course.rating or '—' }}</b> &middot; {{ course.learners_count }} students</span>
+        <span>Level: <b>{{ course.level }}</b></span>
+        <span>Duration: <b>{{ course.duration_weeks }} weeks</b></span>
+        <span>Price: <b>${{ "%.0f"|format(course.price) }}</b></span>
+      </div>
+
+      {% if course.tags %}
+      <div class="sectiontitle" style="margin-top:6px;">Topics covered</div>
+      <ul class="curric">
+        {% for tag in course.tags %}
+        <li><span><span class="num">{{ loop.index }}</span>{{ tag }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <div class="sectiontitle">Instructor</div>
+      <div class="instr">
+        <div class="av">{{ course.instructor[:2]|upper }}</div>
+        <div><h4>{{ course.instructor }}</h4><p>Course instructor</p></div>
+      </div>
+
+      {{ m.agent_recommended(rec, top_topic) }}
+
+      {% if similar %}
+      <div class="sectiontitle">Students who explored this also looked at</div>
+      <div class="similargrid">
+        {% for c in similar %}
+        <a class="coursecard" href="/course/{{ c.id }}">
+          <div class="thumb"><span>{{ c.tags[0] if c.tags else '' }}</span></div>
+          <div class="body">
+            <h4>{{ c.title }}</h4>
+            <p>{{ c.description[:60] }}{{ '…' if c.description|length > 60 else '' }}</p>
+            <div class="cprice"><span>&#9733; {{ c.rating or '—' }} &middot; {{ c.learners_count }}</span><span>${{ "%.0f"|format(c.price) }}</span></div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="cd-side-sticky">
+      <div class="buybox">
+        <div class="pricelabel">One-time price</div>
+        <div class="price">${{ "%.0f"|format(course.price) }}</div>
+        <button class="btn dark cta-btn" data-item-title="{{ course.title }}" data-item-price="{{ course.price }}" data-item-href="/course/{{ course.id }}" data-item-id="{{ course.id }}" data-item-kind="course">&#128722; Add to cart</button>
+        <ul>
+          <li>Lifetime access</li>
+          <li>Downloadable code</li>
+          <li>Cohort office hours</li>
+        </ul>
+      </div>
+      {{ m.signal_panel('signalpanel-course', ticker, scores, reason) }}
+    </div>
+  </div>
+  {% else %}
+  <div class="cd-body"><div class="cd-main"><h1>Course not found</h1><a class="breadcrumb" href="/">&#8592; Back to catalog</a></div></div>
+  {% endif %}
+
+  <div class="toast" id="toast">Added to cart</div>
+  <script src="/static/tracking.js"></script>
+  <script src="/static/app.js"></script>
+  <script>
+    window.PATHWISE_USER_ID = "{{ user_id }}";
+    window.pathwiseTrack({
+      event_type: "view",
+      product_id: "{{ course.id if course else '' }}",
+      client_ts: new Date().toISOString(),
+    });
+    showViewingNow('signalpanel-course', {{ (course.title if course else None)|tojson }});
+    let dwellStart = Date.now();
+    window.addEventListener("beforeunload", () => {
+      window.pathwiseTrack({
+        event_type: "dwell",
+        product_id: "{{ course.id if course else '' }}",
+        dwell_seconds: Math.round((Date.now() - dwellStart) / 1000),
+        client_ts: new Date().toISOString(),
+      }, true);
+    });
+  </script>
+</body>
+</html>

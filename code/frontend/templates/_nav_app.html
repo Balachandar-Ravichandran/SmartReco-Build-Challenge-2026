@@ -1,0 +1,28 @@
+{# Learner-facing nav — expects: nav_active, user_initial, avatar_menu_id #}
+<div class="topbar">
+  <a class="logo" href="/"><span class="dot"></span>Pathwise</a>
+  <div class="navlinks">
+    <a href="/" class="{{ 'active' if nav_active == 'browse' else '' }}">Home</a>
+    <a href="/paths" class="{{ 'active' if nav_active == 'paths' else '' }}">Learning paths</a>
+    <a href="/profile">My Learning</a>
+  </div>
+  <div class="searchwrap">
+    <input class="search" id="navsearch" placeholder="&#128269; Search courses, topics, paths&hellip;" autocomplete="off">
+    <div class="searchdropdown" id="navsearchdropdown"></div>
+  </div>
+  <div class="topbar-right">
+    <a class="cartwrap" href="/cart">&#128722;<span class="cartcount">0</span></a>
+    <div class="avatarwrap">
+      <div class="avatar" onclick="toggleAvatarMenu('{{ avatar_menu_id }}')">{{ user_initial }}</div>
+      <div class="avatarmenu" id="{{ avatar_menu_id }}">
+        <a href="/profile">&#128100; My Profile</a>
+        <a href="/">&#128218; My Learning</a>
+        <div class="div"></div>
+        <a href="/admin">&#9881; Switch to Admin</a>
+        <a href="/paths">&#127919; Switch to Learning Paths</a>
+        <div class="div"></div>
+        <a href="/logout">Log out</a>
+      </div>
+    </div>
+  </div>
+</div>

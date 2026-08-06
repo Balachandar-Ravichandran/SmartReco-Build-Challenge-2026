@@ -1,0 +1,10 @@
+id,user_id,started_at,ended_at,device,referrer
+sess_001,usr_bala_cold,2026-05-01 06:00:00,2026-05-01 06:20:00,web,direct
+sess_002,usr_sol_viewer,2026-05-01 06:30:00,2026-05-01 06:50:00,web,direct
+sess_003,usr_freed_viewer,2026-05-01 06:40:00,2026-05-01 07:00:00,web,direct
+sess_004,usr_sam_shifter,2026-05-01 06:50:00,2026-05-01 07:10:00,web,direct
+sess_005,usr_sparse_tag,2026-05-01 07:00:00,2026-05-01 07:20:00,web,direct
+sess_006,usr_priya_learner,2026-05-01 07:20:00,2026-05-01 07:40:00,web,direct
+sess_007,usr_owen_learner,2026-05-01 07:35:00,2026-05-01 07:55:00,web,direct
+sess_008,usr_lena_learner,2026-05-01 07:50:00,2026-05-01 08:10:00,web,direct
+sess_009,usr_ravi_learner,2026-05-01 08:05:00,2026-05-01 08:25:00,web,direct

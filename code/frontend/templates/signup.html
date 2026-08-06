@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathwise — Create account</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  <div class="login-wrap">
+    <div class="login-left">
+      <div class="logo"><span class="dot"></span>Pathwise</div>
+      <div class="signalchip"><span class="pulse"></span> agent watches &amp; reasons, live</div>
+      <h1>Learning that <span>meets you</span><br>where your behavior<br>actually goes.</h1>
+      <p>Pathwise tracks what you explore, quietly figures out where you're headed, and recommends the course — or the full path — that gets you there.</p>
+    </div>
+    <div class="login-right">
+      <div class="login-form">
+        <h2>Create your account</h2>
+        <p class="sub">Next you'll pick a few topics to seed your first recommendation.</p>
+        <form method="post" action="/web/signup">
+          <div class="field"><label>Email</label><input type="email" name="email" required autofocus></div>
+          <div class="field"><label>Password</label><input type="password" name="password" required></div>
+          <div class="field">
+            <label>I am a</label>
+            <select name="role">
+              <option value="learner">Learner</option>
+              <option value="admin">Admin (catalog owner)</option>
+            </select>
+          </div>
+          <button class="btn" type="submit">Create account</button>
+          {% if error %}<div class="formerror">{{ error }}</div>{% endif %}
+        </form>
+        <p class="switchline">Already have an account? <a href="/login">Sign in</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

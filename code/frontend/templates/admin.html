@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Pathwise</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = 'paths' if active_tab == 'paths' else 'catalog' %}
+  {% include "_nav_admin.html" %}
+
+  <div class="admin-body">
+    <div class="admin-head">
+      <h2 style="margin:0;font-size:20px;">Catalog manager</h2>
+      <button class="btn dark small" style="width:auto;" onclick="toggleAddPanel()">+ Add {{ 'path' if active_tab == 'paths' else 'course' }}</button>
+    </div>
+    <div class="admin-tabs">
+      <a href="/admin" class="admin-tab {{ 'on' if active_tab != 'paths' else '' }}">Courses</a>
+      <a href="/admin?tab=paths" class="admin-tab {{ 'on' if active_tab == 'paths' else '' }}">Paths</a>
+    </div>
+
+    {% if active_tab != 'paths' %}
+    {# ==================== COURSES TAB ==================== #}
+    <div class="addpanel" id="addpanel">
+      <div class="formgrid">
+        <div class="full"><label>Title</label><input id="f-title" placeholder="e.g. Vector Databases in Practice"></div>
+        <div><label>Instructor</label><input id="f-instructor" placeholder="e.g. Ravi Patel"></div>
+        <div><label>Level</label>
+          <select id="f-level"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select>
+        </div>
+        <div><label>Duration (weeks)</label><input id="f-duration" type="number" placeholder="6"></div>
+        <div><label>Price ($)</label><input id="f-price" type="number" placeholder="199"></div>
+        <div class="full">
+          <label>Tags (topics)</label>
+          <select id="f-tags" multiple size="4">
+            {% for t in all_topics %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="full"><label>Description</label><textarea id="f-description" rows="2" placeholder="Short description shown on the course card and used for embeddings"></textarea></div>
+        <input type="hidden" id="f-edit-id" value="">
+      </div>
+      <button class="btn small" style="width:auto;" onclick="saveCourse()">Save course</button>
+      <div class="dwstatusline" id="dwstatus" style="display:none;"></div>
+    </div>
+
+    <table id="courses-table">
+      <tr><th>Title</th><th>Tags</th><th>Level</th><th>Price</th><th>SQL</th><th>Vector DB</th><th>Actions</th></tr>
+    </table>
+
+    {% else %}
+    {# ==================== PATHS TAB ==================== #}
+    <div class="addpanel" id="addpanel">
+      <div class="formgrid">
+        <div class="full"><label>Title</label><input id="p-title" placeholder="e.g. Full-Stack GenAI Path"></div>
+        <div><label>Level range</label><input id="p-level" placeholder="e.g. Intermediate-Advanced"></div>
+        <div><label>Duration (months)</label><input id="p-duration" type="number" placeholder="4"></div>
+        <div><label>Price ($)</label><input id="p-price" type="number" placeholder="359"></div>
+        <div><label>Discount ($)</label><input id="p-discount" type="number" placeholder="0"></div>
+        <div>
+          <label><input type="checkbox" id="p-capstone" style="width:auto;display:inline-block;"> Has capstone</label>
+        </div>
+        <div class="full">
+          <label>Tags (topics)</label>
+          <select id="p-tags" multiple size="4">
+            {% for t in all_topics %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="full">
+          <label>Courses in this path</label>
+          <select id="p-courses" multiple size="6">
+            {% for c in all_courses %}<option value="{{ c.id }}">{{ c.title }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="full"><label>Description</label><textarea id="p-description" rows="2" placeholder="Used for embeddings"></textarea></div>
+      </div>
+      <button class="btn small" style="width:auto;" onclick="savePath()">Save path</button>
+      <div class="dwstatusline" id="dwstatus" style="display:none;"></div>
+    </div>
+
+    <table id="paths-table">
+      <tr><th>Path</th><th>Courses</th><th>Duration</th><th>Price</th><th>SQL</th><th>Vector DB</th><th>Actions</th></tr>
+    </table>
+    {% endif %}
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    const ACTIVE_TAB = "{{ active_tab }}";
+
+    function toggleAddPanel() {
+      document.getElementById('addpanel').classList.toggle('open');
+    }
+
+    function dwBadge(status) {
+      if (status === 'ok') return '<span class="dwbadge ok">&#10003; synced</span>';
+      if (status === 'failed') return '<span class="dwbadge failed">&#10007; failed</span>';
+      return '<span class="dwbadge">pending</span>';
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    let courseRows = {};
+
+    async function loadCourses() {
+      const resp = await fetch('/api/v1/courses');
+      const rows = await resp.json();
+      courseRows = {};
+      rows.forEach(r => { courseRows[r.id] = r; });
+      const table = document.getElementById('courses-table');
+      table.innerHTML = '<tr><th>Title</th><th>Tags</th><th>Level</th><th>Price</th><th>SQL</th><th>Vector DB</th><th>Actions</th></tr>' +
+        rows.map(r => `
+          <tr>
+            <td>${escapeHtml(r.title)}</td>
+            <td>${r.tags.map(escapeHtml).join(', ')}</td>
+            <td>${escapeHtml(r.level)}</td>
+            <td>$${r.price}</td>
+            <td><span class="dwbadge ok">&#10003; synced</span></td>
+            <td>${dwBadge(r.dual_write_status)}</td>
+            <td>
+              <button class="tblbtn" onclick="editCourse('${escapeHtml(r.id)}')">Edit</button>
+              <button class="tblbtn" onclick="deleteCourse('${escapeHtml(r.id)}')">Delete</button>
+            </td>
+          </tr>`).join('');
+    }
+
+    async function loadPaths() {
+      const resp = await fetch('/api/v1/paths');
+      const rows = await resp.json();
+      const table = document.getElementById('paths-table');
+      table.innerHTML = '<tr><th>Path</th><th>Courses</th><th>Duration</th><th>Price</th><th>SQL</th><th>Vector DB</th><th>Actions</th></tr>' +
+        rows.map(r => `
+          <tr>
+            <td>${escapeHtml(r.title)}</td>
+            <td>${r.courses.map(escapeHtml).join(' + ')}</td>
+            <td>${r.duration_months} months</td>
+            <td>$${r.price}${r.discount_amount ? ` <span style="color:var(--success);">(-$${r.discount_amount})</span>` : ''}</td>
+            <td><span class="dwbadge ok">&#10003; synced</span></td>
+            <td>${dwBadge(r.dual_write_status)}</td>
+            <td><button class="tblbtn" onclick="deletePath('${escapeHtml(r.id)}')">Delete</button></td>
+          </tr>`).join('');
+    }
+
+    function editCourse(id) {
+      const r = courseRows[id];
+      document.getElementById('addpanel').classList.add('open');
+      document.getElementById('f-edit-id').value = r.id;
+      document.getElementById('f-title').value = r.title;
+      document.getElementById('f-instructor').value = '';
+      document.getElementById('f-level').value = r.level;
+      document.getElementById('f-price').value = r.price;
+      document.getElementById('f-tags').value = '';
+      Array.from(document.getElementById('f-tags').options).forEach(o => o.selected = r.tags.includes(o.value));
+      window.scrollTo(0, 0);
+    }
+
+    async function friendlyError(resp, kind) {
+      let detail = '';
+      try {
+        const body = await resp.json();
+        detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail);
+      } catch (e) {
+        detail = await resp.text();
+      }
+      if (resp.status === 409 && /already exists/i.test(detail)) {
+        return `A ${kind} with this title already exists. Please use a different title.`;
+      }
+      return detail || `Something went wrong (HTTP ${resp.status}).`;
+    }
+
+    async function saveCourse() {
+      const editId = document.getElementById('f-edit-id').value;
+      const tags = Array.from(document.getElementById('f-tags').selectedOptions).map(o => o.value);
+      const dwstatus = document.getElementById('dwstatus');
+
+      if (editId) {
+        const body = {
+          title: document.getElementById('f-title').value,
+          level: document.getElementById('f-level').value,
+          price: parseFloat(document.getElementById('f-price').value) || 0,
+          tags: tags,
+        };
+        const resp = await fetch(`/api/v1/courses/${editId}`, {
+          method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+        });
+        if (!resp.ok) { alert('Update failed: ' + (await friendlyError(resp, 'course'))); return; }
+      } else {
+        const body = {
+          id: 'crs_' + document.getElementById('f-title').value.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          title: document.getElementById('f-title').value,
+          instructor: document.getElementById('f-instructor').value,
+          description: document.getElementById('f-description').value,
+          tags: tags,
+          level: document.getElementById('f-level').value,
+          duration_weeks: parseInt(document.getElementById('f-duration').value) || 1,
+          price: parseFloat(document.getElementById('f-price').value) || 0,
+        };
+        const resp = await fetch('/api/v1/courses', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+        });
+        if (!resp.ok) { alert('Create failed: ' + (await friendlyError(resp, 'course'))); return; }
+      }
+
+      dwstatus.style.display = 'flex';
+      dwstatus.innerHTML = '<span>&#10003; Written to SQL</span><span>&#10003; Embedded &amp; written to Vector DB</span>';
+      document.getElementById('f-edit-id').value = '';
+      loadCourses();
+    }
+
+    async function deleteCourse(id) {
+      if (!confirm('Delete this course?')) return;
+      const resp = await fetch(`/api/v1/courses/${id}`, {method: 'DELETE'});
+      if (resp.status === 409) {
+        const body = await resp.json();
+        alert('Cannot delete — still part of a path: ' + (body.detail?.blocked_by_path_id || ''));
+        return;
+      }
+      loadCourses();
+    }
+
+    async function savePath() {
+      const tags = Array.from(document.getElementById('p-tags').selectedOptions).map(o => o.value);
+      const courseIds = Array.from(document.getElementById('p-courses').selectedOptions).map(o => o.value);
+      const title = document.getElementById('p-title').value;
+      const body = {
+        id: 'path_' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        title: title,
+        description: document.getElementById('p-description').value,
+        tags: tags,
+        level_range: document.getElementById('p-level').value,
+        duration_months: parseInt(document.getElementById('p-duration').value) || 1,
+        price: parseFloat(document.getElementById('p-price').value) || 0,
+        discount_amount: parseFloat(document.getElementById('p-discount').value) || 0,
+        has_capstone: document.getElementById('p-capstone').checked,
+        course_ids: courseIds,
+      };
+
+      const resp = await fetch('/api/v1/paths', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)
+      });
+      if (!resp.ok) { alert('Create failed: ' + (await friendlyError(resp, 'path'))); return; }
+
+      const dwstatus = document.getElementById('dwstatus');
+      dwstatus.style.display = 'flex';
+      dwstatus.innerHTML = '<span>&#10003; Written to SQL</span><span>&#10003; Embedded &amp; written to Vector DB</span>';
+      loadPaths();
+    }
+
+    async function deletePath(id) {
+      if (!confirm('Delete this path? (courses inside it are not deleted)')) return;
+      await fetch(`/api/v1/paths/${id}`, {method: 'DELETE'});
+      loadPaths();
+    }
+
+    if (ACTIVE_TAB === 'paths') { loadPaths(); } else { loadCourses(); }
+  </script>
+</body>
+</html>

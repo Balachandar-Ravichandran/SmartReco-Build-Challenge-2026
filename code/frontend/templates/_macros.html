@@ -1,0 +1,134 @@
+{% macro option_card(opt, primary=False) %}
+{% set href = (('/path/' if opt.kind == 'path' else '/course/') + opt.id) if opt.id else None %}
+<a {% if href %}href="{{ href }}"{% endif %} class="optioncard {{ 'primary' if primary else '' }}">
+  <div class="optlabel {{ '' if primary else 'alt' }}">{{ opt.kicker }}</div>
+  <h3>{{ opt.title }}</h3>
+  {% if opt.rating %}<div class="ratingline">&#9733; {{ opt.rating }}</div>{% endif %}
+  <ul class="optbullets">
+    <li><span class="k">&#9201; Timeline</span><span>{{ opt.timeline }}</span></li>
+    <li><span class="k">&#127895; Level</span><span>{{ opt.level }}</span></li>
+    <li><span class="k">&#128176; You'll get</span><span>{{ opt.youget }}</span></li>
+    {% if opt.note %}<li><span class="k">&#128161; Best if</span><span>{{ opt.note }}</span></li>{% endif %}
+  </ul>
+  {% if opt.includes %}
+  <div class="includesbox">
+    <div class="ititle">Includes {{ opt.includes|length }} courses</div>
+    {% for c in opt.includes %}
+    <div class="includesrow"><span><span class="n">{{ loop.index }}.</span>{{ c.name }} <span style="color:var(--muted);">&middot; {{ c.level }}</span></span><span>{{ c.dur }}</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="optfoot">
+    <div class="optprice">{% if opt.strike %}<span class="strike">${{ "%.0f"|format(opt.strike) }}</span>{% endif %}${{ "%.0f"|format(opt.price) }}</div>
+    {% if href %}
+    {# Has a real product page — the whole card already links there, so this
+       is just a visual label (no data-item-* / cta-btn), letting the click
+       fall through to the wrapping <a> instead of silently adding to cart. #}
+    <button class="btn small" style="width:auto;">{{ 'View Path' if opt.kind == 'path' else 'View Course' }}</button>
+    {% else %}
+    {# Combo tiles have no product page to view — this button is the only
+       way to act on them, so it keeps the real add-to-cart behavior. #}
+    <button class="btn small cta-btn" style="width:auto;" data-item-title="{{ opt.title }}" data-item-price="{{ opt.price }}" data-item-href="" data-item-id="" data-item-kind="">Add combo to cart</button>
+    {% endif %}
+  </div>
+  {% if opt.savingsNote %}<div class="savingsnote">&#128176; {{ opt.savingsNote }}</div>{% endif %}
+</a>
+{% endmacro %}
+
+{% macro sparkle_icon() %}
+<svg class="sparkleicon" width="26" height="26" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="sparklegrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--cyan)"/>
+      <stop offset="1" stop-color="var(--purple)"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#sparklegrad)" d="M12 2c.6 3.6 1.4 6 2.7 7.3C16 10.6 18.4 11.4 22 12c-3.6.6-6 1.4-7.3 2.7C13.4 16 12.6 18.4 12 22c-.6-3.6-1.4-6-2.7-7.3C8 13.4 5.6 12.6 2 12c3.6-.6 6-1.4 7.3-2.7C10.6 8 11.4 5.6 12 2z"/>
+</svg>
+{% endmacro %}
+
+{% macro agent_recommended(rec, top_topic=None) %}
+<div class="recwrap">
+  <div class="sectiontitle agenttitle" style="margin-top:0;">
+    {{ sparkle_icon() }} Agent Recommended &middot;
+    {% if rec.trigger_reason == 'cold_start' %}
+      based on your initial interest{{ ' in ' ~ top_topic if top_topic else '' }}
+    {% else %}
+      based on your signal{{ ' in ' ~ top_topic if top_topic else '' }}
+    {% endif %}
+  </div>
+  {% if rec.badge %}<span class="badge {{ rec.badge.cls }}">{{ rec.badge.text }}</span>{% endif %}
+  {% if rec.reasoning %}
+  <div class="recreasoning"><span class="reclabel">Why this</span><span>{{ rec.reasoning }}</span></div>
+  {% endif %}
+  <p class="recnarrative">{{ rec.narrative }}</p>
+  {% if rec.highlights %}
+  <ul class="rechighlights">
+    {% for point in rec.highlights %}<li>{{ point }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if rec.pathTiles %}
+  <div class="subsectiontitle">&#127919; Path for you</div>
+  <div class="grid3 tri" style="margin-bottom:22px;">
+    {% for tile in rec.pathTiles %}{{ option_card(tile, loop.first) }}{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if rec.courseTiles %}
+  <div class="subsectiontitle">&#128218; Individual course for you</div>
+  <div class="grid2">
+    {% for tile in rec.courseTiles %}{{ option_card(tile, loop.first) }}{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro product_cards(items) %}
+{% for c in items %}
+<a class="coursecard" href="/{{ 'path' if c.kind == 'path' else 'course' }}/{{ c.id }}">
+  <div class="thumb"><span>{{ c.tags[0] if c.tags else ('Path' if c.kind == 'path' else '') }}</span></div>
+  <div class="body">
+    <h4>{{ c.title }}</h4>
+    <p>{{ c.description[:70] }}{{ '…' if c.description|length > 70 else '' }}</p>
+    <div class="cprice">
+      <span>{% if c.kind == 'path' %}Learning path{% else %}&#9733; {{ c.rating or '—' }} &middot; {{ c.learners_count }}{% endif %}</span>
+      <span>${{ "%.0f"|format(c.price) }}</span>
+    </div>
+  </div>
+</a>
+{% endfor %}
+{% endmacro %}
+
+{% macro signal_panel(container_id, ticker, scores, reason) %}
+<div class="signalpanel">
+  <div class="signalhead"><h3>Your Signal</h3><div class="live"><span class="livedot"></span>streaming</div></div>
+  <div class="ticker collapsed" id="{{ container_id }}-ticker">
+    {% if ticker %}
+      {% for t in ticker %}<div class="tickitem {{ 'new' if t.new else '' }}">{{ t.text|safe }}</div>{% endfor %}
+    {% else %}
+      <div class="emptystate" style="padding:10px 0;">No activity yet.</div>
+    {% endif %}
+  </div>
+  {% if ticker|length > 3 %}
+  <div class="tickmore" onclick="expandTicker('{{ container_id }}-ticker', this)">&#9662; Show earlier activity ({{ ticker|length - 3 }} more)</div>
+  {% endif %}
+  <button class="expandbtn" onclick="toggleDrawer('{{ container_id }}-drawer', this)"><span>Hide reasoning &#9652;</span></button>
+  <div class="drawer open" id="{{ container_id }}-drawer">
+    {% if scores %}
+    <div class="scorelegend">Your interest strength per topic, 0-100% &mdash; higher means your recent views, dwell time, and clicks point more strongly to that topic.</div>
+    <div class="scorewrap">
+      {% for sc in scores %}
+      <div class="scorerow"><span>{{ sc.label }}</span><span>{{ sc.v }}%</span></div>
+      <div class="scorebar"><div style="width:{{ sc.v }}%"></div></div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="scorewrap">
+      <div class="emptystate" style="padding:0 0 10px;">No scores yet.</div>
+    </div>
+    {% endif %}
+    <div class="reasontrace"><b>Why this pick:</b> {{ reason }}</div>
+  </div>
+</div>
+{% endmacro %}

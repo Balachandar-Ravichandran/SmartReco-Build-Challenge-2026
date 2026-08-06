@@ -1,0 +1,6 @@
+{# Category strip — expects: all_topics, topcats_active #}
+<div class="topcats">
+  {% for t in all_topics %}
+  <a class="{{ 'on' if t == topcats_active else '' }}" href="/browse?topic={{ t|urlencode }}">{{ t }}</a>
+  {% endfor %}
+</div>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ path.title if path else "Learning path" }} — Pathwise</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  {% import "_macros.html" as m %}
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = 'paths' %}
+  {% include "_nav_app.html" %}
+  {% set topcats_active = path.tags[0] if path and path.tags else None %}
+  {% include "_topcats.html" %}
+
+  {% if path %}
+  <div class="cd-body">
+    <div class="cd-main">
+      <a class="breadcrumb" href="/paths">&#8592; Back to learning paths</a>
+      <div class="cd-hero"><span>{{ path.tags[0] if path.tags else 'Path' }}</span></div>
+      <div class="cd-tag">Curated path</div>
+      <h1>{{ path.title }}</h1>
+      <p class="desc">{{ path.description }}</p>
+      <div class="cd-meta">
+        <span>Timeline: <b>{{ path.duration_months }} months</b></span>
+        <span>Level: <b>{{ path.level_range }}</b></span>
+        <span>You'll get: <b>{{ path.courses|length }} courses{{ ' + capstone' if path.has_capstone else '' }}</b></span>
+        <span>Price: <b>${{ "%.0f"|format(path.price) }}</b></span>
+      </div>
+
+      <div class="sectiontitle" style="margin-top:6px;">Courses in this path</div>
+      <ul class="curric">
+        {% for c in path.courses %}
+        <li>
+          <span><span class="num">{{ loop.index }}</span>{{ c.title }} &middot; {{ c.level }}</span>
+          <a href="/course/{{ c.id }}" style="color:var(--cyan-dark);font-weight:700;font-size:12.5px;">{{ c.duration_weeks }} weeks &#8594;</a>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {{ m.agent_recommended(rec, top_topic) }}
+
+      {% if similar %}
+      <div class="sectiontitle">Other paths you might like</div>
+      <div class="similargrid">
+        {% for p in similar %}
+        <a class="coursecard" href="/path/{{ p.id }}">
+          <div class="thumb"><span>{{ p.tags[0] if p.tags else '' }}</span></div>
+          <div class="body">
+            <h4>{{ p.title }}</h4>
+            <p>{{ p.description[:60] }}{{ '…' if p.description|length > 60 else '' }}</p>
+            <div class="cprice"><span>{{ p.duration_months }} months</span><span>${{ "%.0f"|format(p.price) }}</span></div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="cd-side-sticky">
+      <div class="buybox">
+        <div class="pricelabel">One-time price</div>
+        <div class="price">
+          {% if path.discount_amount %}<span class="strike" style="font-size:15px;color:var(--muted);text-decoration:line-through;margin-right:6px;">${{ "%.0f"|format(path.price + path.discount_amount) }}</span>{% endif %}
+          ${{ "%.0f"|format(path.price) }}
+        </div>
+        <button class="btn dark cta-btn" data-item-title="{{ path.title }}" data-item-price="{{ path.price }}" data-item-href="/path/{{ path.id }}" data-item-id="{{ path.id }}" data-item-kind="path">&#128722; Enroll in path</button>
+        <ul>
+          <li>{{ path.courses|length }} courses{{ ' + capstone project' if path.has_capstone else '' }}</li>
+          <li>{{ path.duration_months }} month timeline</li>
+          {% if path.discount_amount %}<li>Save ${{ "%.0f"|format(path.discount_amount) }} bundled</li>{% endif %}
+        </ul>
+      </div>
+      {{ m.signal_panel('signalpanel-path', ticker, scores, reason) }}
+    </div>
+  </div>
+  {% else %}
+  <div class="cd-body"><div class="cd-main"><h1>Path not found</h1><a class="breadcrumb" href="/paths">&#8592; Back to learning paths</a></div></div>
+  {% endif %}
+
+  <div class="toast" id="toast">Added to cart</div>
+  <script src="/static/tracking.js"></script>
+  <script src="/static/app.js"></script>
+  <script>
+    window.PATHWISE_USER_ID = "{{ user_id }}";
+    window.pathwiseTrack({
+      event_type: "view",
+      path_id: "{{ path.id if path else '' }}",
+      client_ts: new Date().toISOString(),
+    });
+    showViewingNow('signalpanel-path', {{ (path.title if path else None)|tojson }});
+    let dwellStart = Date.now();
+    window.addEventListener("beforeunload", () => {
+      window.pathwiseTrack({
+        event_type: "dwell",
+        path_id: "{{ path.id if path else '' }}",
+        dwell_seconds: Math.round((Date.now() - dwellStart) / 1000),
+        client_ts: new Date().toISOString(),
+      }, true);
+    });
+  </script>
+</body>
+</html>

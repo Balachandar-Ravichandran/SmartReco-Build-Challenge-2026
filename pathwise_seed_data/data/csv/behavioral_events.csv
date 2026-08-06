@@ -1,0 +1,26 @@
+id,user_id,session_id,event_type,target,product_id,path_id,query_text,dwell_seconds,created_at
+1,usr_sol_viewer,sess_002,view,,crs_ai-engineer--by-sol,,,,2026-05-01 06:31:00
+2,usr_sol_viewer,sess_002,dwell,,crs_ai-engineer--by-sol,,,45,2026-05-01 06:32:00
+3,usr_freed_viewer,sess_003,view,,crs_ai-engineer--by-sol,,,,2026-05-01 06:41:00
+4,usr_freed_viewer,sess_003,dwell,,crs_ai-engineer--by-sol,,,45,2026-05-01 06:42:00
+5,usr_freed_viewer,sess_003,view,,crs_ai-engineer--by-freed,,,,2026-05-01 06:46:00
+6,usr_sam_shifter,sess_004,view,,crs_ai-engineer--by-sol,,,,2026-05-01 06:51:00
+7,usr_sam_shifter,sess_004,dwell,,crs_ai-engineer--by-sol,,,45,2026-05-01 06:52:00
+8,usr_sam_shifter,sess_004,view,,crs_ai-deployment--by-sam,,,,2026-05-01 06:58:00
+9,usr_sam_shifter,sess_004,search,,,,deploy ai agents production,,2026-05-01 06:59:00
+10,usr_sparse_tag,sess_005,view,,crs_ios-development-with-swift,,,,2026-05-01 07:01:00
+11,usr_priya_learner,sess_006,view,,crs_fine-tuning-llms,,,,2026-05-01 07:21:00
+12,usr_priya_learner,sess_006,dwell,,crs_fine-tuning-llms,,,49,2026-05-01 07:22:00
+13,usr_priya_learner,sess_006,view,,crs_building-production-rag-systems,,,,2026-05-01 07:24:00
+14,usr_priya_learner,sess_006,view,,crs_retrieval-augmented-generation-basics,,,,2026-05-01 07:27:00
+15,usr_owen_learner,sess_007,view,,crs_ai-roi-for-business-leaders,,,,2026-05-01 07:36:00
+16,usr_owen_learner,sess_007,dwell,,crs_ai-roi-for-business-leaders,,,54,2026-05-01 07:37:00
+17,usr_owen_learner,sess_007,view,,crs_financial-modeling-with-python,,,,2026-05-01 07:39:00
+18,usr_lena_learner,sess_008,view,,crs_ux-research-fundamentals,,,,2026-05-01 07:51:00
+19,usr_lena_learner,sess_008,dwell,,crs_ux-research-fundamentals,,,27,2026-05-01 07:52:00
+20,usr_lena_learner,sess_008,view,,crs_technical-interview-prep,,,,2026-05-01 07:54:00
+21,usr_lena_learner,sess_008,view,,crs_communicating-technical-work,,,,2026-05-01 07:57:00
+22,usr_ravi_learner,sess_009,view,,crs_ios-development-with-swift,,,,2026-05-01 08:06:00
+23,usr_ravi_learner,sess_009,dwell,,crs_ios-development-with-swift,,,44,2026-05-01 08:07:00
+24,usr_ravi_learner,sess_009,view,,crs_android-development-with-kotlin,,,,2026-05-01 08:09:00
+25,usr_ravi_learner,sess_009,view,,crs_cross-platform-apps-with-react-native,,,,2026-05-01 08:12:00

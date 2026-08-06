@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathwise — Get started</title>
+  <link rel="stylesheet" href="/static/theme.css">
+  <style>.onboard-step{display:none;} .onboard-step.active{display:block;}</style>
+</head>
+<body>
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  <form method="post" action="/web/onboarding">
+    <div class="onboard-step active" id="step-topics">
+      <div class="progresswrap">
+        <div class="steplabel">Step 1 of 2</div>
+        <div class="progressbar"><div style="width:50%"></div></div>
+      </div>
+      <div class="onboard">
+        <h1>What do you want to learn?</h1>
+        <p class="sub">Pick up to 5 — this seeds your very first recommendations before we've seen you browse anything.</p>
+        <div class="chipgrid" id="topicgrid">
+          {% for topic in topics %}
+          <label class="chip">
+            <input type="checkbox" name="selected_topics" value="{{ topic }}" style="display:none;">
+            {{ topic }}
+          </label>
+          {% endfor %}
+        </div>
+        <div class="counter" id="topiccount">0 / 5 selected</div>
+        <div class="navrow">
+          <span></span>
+          <button type="button" class="btn small" style="width:auto;" onclick="goStep('step-goal')">Continue &#8594;</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="onboard-step" id="step-goal">
+      <div class="progresswrap">
+        <div class="steplabel">Step 2 of 2</div>
+        <div class="progressbar"><div style="width:100%"></div></div>
+      </div>
+      <div class="onboard">
+        <h1>What's your objective?</h1>
+        <p class="sub">This shapes the tone of your recommendations — and whether we lean toward paths or single courses.</p>
+        <div class="goalgrid" id="goalgrid">
+          {% for goal in goals %}
+          <label class="goalcard">
+            <input type="radio" name="goal" value="{{ goal.value }}" style="display:none;" required>
+            <span class="ico">{{ goal.icon|safe }}</span><h3>{{ goal.value }}</h3><p>{{ goal.desc }}</p>
+          </label>
+          {% endfor %}
+        </div>
+        {% if error %}<div class="formerror">{{ error }}</div>{% endif %}
+        <div class="navrow">
+          <button type="button" class="btn secondary small" style="width:auto;" onclick="goStep('step-topics')">&#8592; Back</button>
+          <button type="submit" class="btn small" style="width:auto;">Finish &#8594;</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <script src="/static/app.js"></script>
+  <script>
+    initTopicChips(5);
+    initGoalCards();
+
+    function goStep(id) {
+      if (id === 'step-goal') {
+        const checked = document.querySelectorAll('#topicgrid input:checked').length;
+        if (checked < 1) { alert('Pick at least 1 topic to continue.'); return; }
+      }
+      document.querySelectorAll('.onboard-step').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    {% if start_step == 'goal' %}goStep('step-goal');{% endif %}
+  </script>
+</body>
+</html>

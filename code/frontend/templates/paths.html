@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learning paths — Pathwise</title>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  <div class="themetoggle floating" onclick="toggleTheme()"><span id="themeicon">&#127769;</span> <span id="themelabel">Dark mode</span></div>
+
+  {% set nav_active = 'paths' %}
+  {% include "_nav_app.html" %}
+  {% set topcats_active = None %}
+  {% include "_topcats.html" %}
+
+  <div class="home-body" style="grid-template-columns:1fr;">
+    <div>
+      <div class="greeting">Learning paths</div>
+      <div class="greeting-sub">Curated, multi-course bundles that take you from foundations to a finished project.</div>
+
+      {% if paths %}
+      <div class="grid3" style="margin-top:20px;">
+        {% for p in paths %}
+        <a class="coursecard" href="/path/{{ p.id }}">
+          <div class="thumb"><span>{{ p.tags[0] if p.tags else 'Path' }}</span></div>
+          <div class="body">
+            <h4>{{ p.title }}</h4>
+            <p>{{ p.description[:70] }}{{ '…' if p.description|length > 70 else '' }}</p>
+            <div class="cprice">
+              <span>{{ p.course_count }} courses &middot; {{ p.duration_months }}mo</span>
+              <span>{% if p.discount_amount %}<span style="text-decoration:line-through;color:var(--muted);font-weight:400;">${{ "%.0f"|format(p.price + p.discount_amount) }}</span> {% endif %}${{ "%.0f"|format(p.price) }}</span>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="emptystate">No learning paths in the catalog yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Added to cart</div>
+  <script src="/static/tracking.js"></script>
+  <script src="/static/app.js"></script>
+  <script>
+    window.PATHWISE_USER_ID = "{{ user_id }}";
+  </script>
+</body>
+</html>

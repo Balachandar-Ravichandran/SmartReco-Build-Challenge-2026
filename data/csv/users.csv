@@ -1,0 +1,11 @@
+id,email,role,password_hash,created_at
+usr_bala_cold,bala.cold@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-02 09:00:00
+usr_sol_viewer,sol.viewer@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-05 09:00:00
+usr_freed_viewer,freed.viewer@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-08 09:00:00
+usr_sam_shifter,sam.shifter@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-11 09:00:00
+usr_sparse_tag,sparse.tag@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-14 09:00:00
+usr_nadia_admin,nadia.admin@example.com,admin,bcrypt$demo$not-a-real-hash,2026-03-17 09:00:00
+usr_priya_learner,priya.learner@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-20 09:00:00
+usr_owen_learner,owen.learner@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-23 09:00:00
+usr_lena_learner,lena.learner@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-26 09:00:00
+usr_ravi_learner,ravi.learner@example.com,learner,bcrypt$demo$not-a-real-hash,2026-03-29 09:00:00

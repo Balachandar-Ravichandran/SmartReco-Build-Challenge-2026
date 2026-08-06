@@ -1,0 +1,19 @@
+{# Admin nav — expects: nav_active #}
+<div class="topbar">
+  <a class="logo" href="/admin"><span class="dot"></span>Pathwise <span style="font-size:11px;color:#8b90b8;font-weight:500;margin-left:6px;">/ admin</span></a>
+  <div class="navlinks">
+    <a href="/admin" class="{{ 'active' if nav_active == 'catalog' else '' }}">Catalog</a>
+    <a href="/admin?tab=paths" class="{{ 'active' if nav_active == 'paths' else '' }}">Paths</a>
+    <a href="#" onclick="alert('Console — not built yet'); return false;">Console</a>
+  </div>
+  <div class="topbar-right">
+    <div class="avatarwrap">
+      <div class="avatar" onclick="toggleAvatarMenu('menu-admin')">A</div>
+      <div class="avatarmenu" id="menu-admin">
+        <a href="/paths">&#127919; Switch to Learning Paths</a>
+        <div class="div"></div>
+        <a href="/logout">Log out</a>
+      </div>
+    </div>
+  </div>
+</div>

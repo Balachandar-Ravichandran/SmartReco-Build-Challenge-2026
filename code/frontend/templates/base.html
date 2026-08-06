@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Pathwise{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0; background: #0b0d12; color: #e8e9ed;
+    }
+    header {
+      padding: 20px 32px; border-bottom: 1px solid #1e222b;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    header .brand { font-weight: 700; font-size: 1.25rem; color: #7dd3fc; }
+    nav a { color: #9aa3b2; text-decoration: none; margin-left: 20px; font-size: 0.9rem; }
+    nav a:hover { color: #e8e9ed; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px; }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 600; margin-bottom: 12px;
+    }
+    .badge.fresh { background: #14532d; color: #86efac; }
+    .badge.cached { background: #422006; color: #fde68a; }
+    h1.headline { font-size: 1.6rem; margin: 4px 0 8px; }
+    p.narrative { color: #b6bdc9; margin-bottom: 28px; line-height: 1.5; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .tile {
+      background: #11141b; border: 1px solid #1e222b; border-radius: 12px;
+      padding: 20px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .tile .kicker { font-size: 0.75rem; color: #7dd3fc; font-weight: 600; text-transform: uppercase; }
+    .tile .title { font-size: 1.15rem; font-weight: 700; }
+    .tile .meta { font-size: 0.85rem; color: #9aa3b2; }
+    .tile .price { font-size: 1.3rem; font-weight: 700; margin-top: 6px; }
+    .tile .price .strike { font-size: 0.9rem; color: #6b7280; text-decoration: line-through; margin-right: 8px; }
+    .tile .savings { color: #86efac; font-size: 0.8rem; }
+    .tile .includes { font-size: 0.8rem; color: #9aa3b2; margin-top: 4px; }
+    .tile button {
+      margin-top: 12px; padding: 10px; border: none; border-radius: 8px;
+      background: #7dd3fc; color: #0b0d12; font-weight: 700; cursor: pointer;
+    }
+    .tile button:hover { background: #38bdf8; }
+    section.group { margin-bottom: 32px; }
+    section.group h2 { font-size: 1rem; color: #9aa3b2; text-transform: uppercase; letter-spacing: 0.05em; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Pathwise</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/admin">Admin</a>
+      <a href="/logout">Log out</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <script src="/static/tracking.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
