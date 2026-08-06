@@ -104,14 +104,14 @@ EXTRA_COURSE_POOL = {
         ("Prototyping with AI Tools", "Freed Osei", ["Generative AI"], "Beginner", 3, 99.0, 4.5, 920),
     ],
     "Business & Finance": [
-        ("AI ROI for Business Leaders", "Owen Castillo", ["Career Skills"], "Beginner", 3, 99.0, 4.4, 640),
+        ("AI ROI for Business Leaders", "Owen Castillo", ["Career Skills", "Generative AI"], "Beginner", 3, 99.0, 4.4, 640),
         ("Financial Modeling with Python", "Owen Castillo", ["Python for AI"], "Intermediate", 6, 179.0, 4.5, 470),
         ("Data-Driven Decision Making", "Owen Castillo", ["Data Engineering"], "Intermediate", 5, 149.0, 4.5, 520),
     ],
     "Mobile Development": [
         ("iOS Development with Swift", "Ravi Menon", ["Product & Design"], "Beginner", 7, 179.0, 4.6, 1230),
         ("Android Development with Kotlin", "Ravi Menon", ["Product & Design"], "Beginner", 7, 179.0, 4.5, 1080),
-        ("Cross-Platform Apps with React Native", "Ravi Menon", ["Career Skills"], "Intermediate", 6, 169.0, 4.4, 690),
+        ("Cross-Platform Apps with React Native", "Ravi Menon", ["Career Skills", "Generative AI"], "Intermediate", 6, 169.0, 4.4, 690),
         ("Mobile App Performance Tuning", "Ravi Menon", ["Cloud & DevOps"], "Advanced", 4, 159.0, 4.3, 210),
     ],
     "Career Skills": [

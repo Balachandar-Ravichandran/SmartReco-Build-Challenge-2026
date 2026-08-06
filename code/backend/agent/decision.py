@@ -6,7 +6,6 @@ Operates strictly on already-retrieved SearchCandidate-shaped data; never a DB r
 """
 from typing import Literal, TypedDict
 
-from backend.core.config import get_settings
 from backend.core.schemas import SearchCandidate
 
 
@@ -23,15 +22,21 @@ def resolve_recommendation_shape(
     path_candidates: list[SearchCandidate],
     course_candidates: list[SearchCandidate],
 ) -> ShapeDecision:
-    """Three-way decision tree (Section 7.4):
+    """Three-way decision tree (Section 7.4, revised):
 
-    1. Curated Path match (real discount + capstone) -> lead with the Path.
-    2. No curated Path clears threshold, but >=2 individually-matched courses
-       exist -> ad-hoc combo, price = literal sum, no invented discount.
+    1. Any matched Path -> lead with the Path. A real discount + capstone
+       flag earns a genuine savings/capstone claim in the tile; a plain
+       topical match (no discount, no capstone) still leads, just without
+       that claim — a path that's the best content match for the user
+       shouldn't be silently discarded in favor of a single course just
+       because it isn't also a discounted bundle. (Earlier revision required
+       discount+capstone to even be considered here, which meant a path with
+       neither could never win the hero slot no matter how strong its tag/
+       semantic match was — that's the bug this revision fixes.)
+    2. No matched Path at all, but >=2 individually-matched courses exist ->
+       ad-hoc combo, price = literal sum, no invented discount.
     3. Only one course clears the threshold -> single dominant course only.
     """
-    settings = get_settings()
-
     matched_paths = [c for c in path_candidates if c.is_match]
     matched_courses = [c for c in course_candidates if c.is_match]
     ranked_paths = sorted(matched_paths, key=lambda c: c.combined_score, reverse=True)
@@ -40,8 +45,10 @@ def resolve_recommendation_shape(
     curated = [
         p for p in matched_paths if (p.discount_amount or 0) > 0 and p.has_capstone
     ]
-    if curated:
-        top_path = max(curated, key=lambda c: c.combined_score)
+    top_path = max(curated, key=lambda c: c.combined_score) if curated else (
+        ranked_paths[0] if ranked_paths else None
+    )
+    if top_path:
         top_course = matched_courses[0] if matched_courses else None
         return ShapeDecision(
             shape="curated_path",

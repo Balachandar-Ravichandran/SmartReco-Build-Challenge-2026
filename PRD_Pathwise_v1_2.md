@@ -58,7 +58,7 @@ These nine points are the load-bearing decisions of the whole system. Sections 4
 | Frontend | **Server-rendered Jinja2 templates + JavaScript for tracking** | Required | This changes the earlier plan of a client-side SPA fetching a JSON API. See Section 4.1's frontend row and Section 17 Phase 5 — the recommendation panel is rendered server-side by calling the pipeline directly inside the route handler; JavaScript's only job is batching and POSTing `behavioral_events` (Section 5.4), not fetching recommendation data. |
 | Database | **SQLite** | SQLite or PostgreSQL | Zero external service, sufficient at hackathon scale — see Section 13.1. |
 | Agent (bonus) | **LangGraph** | LangGraph | Section 6.1 — with the retry-fan-in fix in this revision. |
-| Scheduling (bonus) | **APScheduler** | Celery / APScheduler | In-process, no broker/worker service needed — fits `scheduler/reconciliation.py` and `scheduler/proactive_refresh.py` (Section 6.5) at this scale; Celery would be the right call if this became a multi-process production deployment. |
+| Scheduling (bonus) | **APScheduler** | Celery / APScheduler | In-process, no broker/worker service needed — fits `scheduler/reconciliation.py`, `scheduler/proactive_refresh.py` (Section 6.5), and `scheduler/daily_digest.py` (Section 6.7) at this scale; Celery would be the right call if this became a multi-process production deployment. |
 | Observability (bonus) | **LangSmith** | LangSmith | Wired as a tracing callback on every LangGraph run, and reused as the evaluation harness — Section 19's decision-point checks run as a LangSmith Dataset + `evaluate()` experiment over the traced runs, not a separate hand-rolled script (Section 6.6). Falls back to a no-op tracer if `LANGCHAIN_API_KEY` isn't set, so the app runs identically with or without it configured. |
 
 ---
@@ -126,6 +126,7 @@ No authentication/authorization layer is built in this version — every request
 | `tools/vector_tool.py` | Chroma wrapper — `upsert_course()`, `upsert_path()`, `delete_by_id()`, `query()`. The only module that talks to Chroma. |
 | `tools/db_tool.py` | SQL read/write helpers; owns the dual-write orchestration steps described in Section 13.4. |
 | `tools/mesh_client.py` | Mesh API wrapper (OpenAI-compatible). Two methods only: `embed(text) -> list[float]` and `complete(system, user, response_schema) -> dict`. **Every** AI call in the system — embedding or completion — goes through this module and nowhere else. Enforces a hard per-call timeout (3s embed / 6s completion), one bounded HTTP-layer retry with exponential backoff on connection errors (distinct from the Validator's business-logic retry in Section 8), and fails fast to the calling node — which routes to `fallback` — if Mesh API is unreachable after that retry, not only if it returns malformed JSON. See Section 15 for the full resilience contract. |
+| `tools/email_client.py` | Email wrapper (`smtplib`, stdlib only). `render_digest(rec, ticker, scores) -> (subject, html, text)` builds the digest content from the same `RecommendationResponse` + Signal-panel data (`agent/signal_panel.py::build_ticker`/`build_scores`) the home page renders — no separate summary logic to keep in sync. `send(to_email, subject, html, text) -> bool` is the **only** outbound-email call site in the system; logs a `[digest stub]` line and returns `False` instead of dispatching when `SMTP_HOST` isn't set, the same no-op posture as `core/tracing.py`'s fallback. See Section 6.7. |
 | `core/tracing.py` | `get_tracer_config(user_id, trigger_reason, scope, retry_count) -> dict` — builds the `config=` dict passed to `build_graph().invoke(...)`: a `LangChainTracer` callback tagged with per-run metadata (`user_id`, `trigger_reason`, `scope`, `retry_count`), reading `LANGCHAIN_API_KEY`/`LANGCHAIN_PROJECT` from env. Returns an empty-callback no-op config if unset, so the app behaves identically either way. Full wiring and why it's safe under the certificate rule: Section 6.6. |
 | `core/events.py` | `emit(category, event, **payload)` — the single JSONL logging call site. Section 11 is its full catalogue. |
 | `core/schemas.py` | All Pydantic models (Section 12). |
@@ -134,6 +135,7 @@ No authentication/authorization layer is built in this version — every request
 | `db/schema.sql` | Raw DDL, runnable directly against SQLite — the authoritative schema (Section 13.2). |
 | `scheduler/reconciliation.py` | **APScheduler** interval job (every 5 min) — retries `vector_sync_log` rows where `vector_status='failed'`. |
 | `scheduler/proactive_refresh.py` | **APScheduler** interval job (every 6h, configurable) — bonus feature; periodic scan for users with a new significant shift since their last agent run; proactively refreshes `current_recommendations` without waiting for their next page load. |
+| `scheduler/daily_digest.py` | **APScheduler** `CronTrigger` job (once daily, at `DIGEST_HOUR:DIGEST_MINUTE`, configurable) — bonus feature; sends each opted-in user (`users.digest_enabled`) the same recommendation content `GET /api/v1/recommendations` would render for them, via `tools/email_client.py` (Section 6.7). |
 | `data/seed.py` | One-time synthetic-data loader (Section 18). |
 | `frontend/templates/` | **Jinja2** templates (`home.html`, `course.html`, `profile.html`, `admin.html`, etc.), adapted from the existing `pathwise-wireframe.html` screens. Rendered server-side by `api/recommendations.py`'s route handlers, which call the pipeline directly and pass a `SolverOutput`-shaped context into the template — there is no client-side fetch of recommendation data. |
 | `frontend/static/tracking.js` | The **only** JavaScript in the app that talks to the backend. Batches `behavioral_events` client-side (Section 5.4) and POSTs to `/api/v1/events`; does not fetch or render recommendation data. |
@@ -390,6 +392,37 @@ def groundedness(run, example) -> dict:
 
 Each `evaluate()` call produces a LangSmith **Experiment** — a scored, filterable table over the 5 synthetic users, linked back to the full trace tree for any example that scored 0, so a failing case is one click from "which node, which certificate, which fact" rather than a bare pass/fail count. This experiment is the concrete answer to Section 19's "what failure cases were found" question, and its export is what `/evaluation` (Section 20) actually contains, alongside the write-up.
 
+### 6.7 Bonus: Daily Digest Email (`tools/email_client.py`, `scheduler/daily_digest.py`) — **detached for the competition submission**
+
+Opt-in per user via a `users.digest_enabled` flag, toggled from the Profile page (`POST /web/profile/digest`) — nothing is ever emailed to a user who hasn't asked for it.
+
+`scheduler/daily_digest.py::run()` is an **APScheduler** `CronTrigger` job (once daily at `DIGEST_HOUR:DIGEST_MINUTE`, config-driven, default `08:00` server-local) — a fixed-time-of-day job, not an interval one like `proactive_refresh.py` (Section 6.5), since "once a day at a predictable hour" is the actual product requirement here, not "N minutes since last run". For every `users` row with `digest_enabled=1`, it calls the exact same `api/recommendations.py::get_recommendations()` entry point the home page uses (`scope="home"`) plus `agent/signal_panel.py::build_ticker()`/`build_scores()` — the digest's content is never a separate summary that could drift from what the user would see by logging in, it's the same certificate-derived output Section 9–10 already produced.
+
+`tools/email_client.py::render_digest(rec, ticker, scores) -> (subject, html_body, text_body)` builds a multipart email from that data — headline/narrative/reasoning/highlights/tiles, plus "your activity today" (only ticker items flagged `new`) and "your top interests" (the same 0-100 bars the Signal panel shows). `send(to_email, subject, html, text) -> bool` is the one SMTP call site (`smtplib`, stdlib only, no new dependency):
+
+```python
+# tools/email_client.py::send — abbreviated
+def send(to_email: str, subject: str, body_html: str, body_text: str) -> bool:
+    settings = get_settings()
+    if not settings.SMTP_HOST:
+        print(f"[digest stub] would send to {to_email!r}: {subject!r}\n{body_text}\n")
+        return False           # log-only stub — exercisable with no real SMTP creds
+    msg = MIMEMultipart("alternative")
+    msg["Subject"], msg["From"], msg["To"] = subject, settings.SMTP_FROM_EMAIL or settings.SMTP_USER, to_email
+    msg.attach(MIMEText(body_text, "plain")); msg.attach(MIMEText(body_html, "html"))
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+        if settings.SMTP_USE_TLS:
+            server.starttls()
+        if settings.SMTP_USER:
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(msg["From"], [to_email], msg.as_string())
+    return True
+```
+
+Required env vars (`.env`): `SMTP_HOST`, `SMTP_PORT` (default `587`), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS` (default `true`). Leaving `SMTP_HOST` unset drops `send()` into the log-only stub above instead of dispatching — the same no-op-fallback posture as `core/tracing.py` (6.6) and the Mesh client (Section 15), not a special case; the digest job is fully exercisable end-to-end before real SMTP credentials exist.
+
+**Not registered by default.** `core/config.py::ENABLE_DAILY_DIGEST` (default `false`) gates the `daily_digest` job registration in `app/main.py`'s lifespan (alongside the identical `ENABLE_PROACTIVE_REFRESH` gate for Section 6.5) — bonus feature, not part of the core recommendation flow being judged, and it's the one integration in this PRD that reaches an external mailbox rather than an external API. Per-run outcome is logged via `core/events.py::digest_sent` / `digest_stubbed` / `digest_failed`.
+
 ---
 
 ## 7. Feature Requirements — Act Workers (Path Search, Course Search)
@@ -496,7 +529,7 @@ Emits `FALLBACK_SERVED` with which sub-path was taken (`stale_recommendations`, 
 
 ## 11. Event Catalogue
 
-The single source of truth for every named, logged event. Every row maps to exactly one emitting function. `category` is the first argument to `core/events.py::emit(category, event, **payload)`; every event is one JSON line in `/logs/run_<session_id>.jsonl`. **40 distinct event names**, each traceable to exactly one function — this table is meant to be copied directly into a presentation, not summarized from.
+The single source of truth for every named, logged event. Every row maps to exactly one emitting function. `category` is the first argument to `core/events.py::emit(category, event, **payload)`; every event is one JSON line in `/logs/run_<session_id>.jsonl`. **41 distinct event names**, each traceable to exactly one function — this table is meant to be copied directly into a presentation, not summarized from.
 
 ### 11.1 Trigger / Cold-Start
 | Event | Emitting function | Trigger condition |
@@ -555,7 +588,14 @@ The single source of truth for every named, logged event. Every row maps to exac
 | `BEHAVIORAL_EVENT_INGESTED` | `api/events.py::ingest` (background task) | One row successfully written |
 | `BEHAVIORAL_EVENT_REJECTED` | `api/events.py::ingest` | Malformed row dropped from a batch |
 
-**40 distinct event names**, each traceable to exactly one function above — built so nothing shown in a demo/presentation can be a phantom event (named in slides, absent from `/logs`).
+### 11.8 Daily Digest (bonus, Section 6.7)
+| Event | Emitting function | Trigger condition |
+|---|---|---|
+| `DIGEST_SENT` | `core/events.py::digest_sent`, called from `scheduler/daily_digest.py::_send_one` | `tools/email_client.py::send()` actually dispatched via SMTP for an opted-in user |
+| `DIGEST_STUBBED` | `core/events.py::digest_stubbed`, called from `scheduler/daily_digest.py::_send_one` | `send()` returned `False` because `SMTP_HOST` is unset — logged as the stub, not a failure |
+| `DIGEST_FAILED` | `core/events.py::digest_failed`, called from `scheduler/daily_digest.py::_send_one` | Building that user's recommendation content (the same `get_recommendations()` call the home page makes) raised — never blocks the remaining recipients in the batch |
+
+**41 distinct event names**, each traceable to exactly one function above — built so nothing shown in a demo/presentation can be a phantom event (named in slides, absent from `/logs`).
 
 ---
 
@@ -861,6 +901,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('learner','admin')),
+    digest_enabled INTEGER NOT NULL DEFAULT 0,   -- opt-in flag for the daily digest email, Section 6.7
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

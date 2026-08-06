@@ -46,7 +46,10 @@ def _aggregate_scores(
         if row.event_type == "dwell" and row.dwell_seconds:
             intensity *= min(row.dwell_seconds / 60.0, 3.0)  # cap dwell bonus at 3x
 
-        weight = recency_weight * intensity
+        # Split weight across the item's tags — otherwise a broad multi-topic
+        # bundle (e.g. a 5-tag path) counts as 5x the evidence of a single-tag
+        # item and drags every one of its tags to a tied max score.
+        weight = recency_weight * intensity / len(tags)
         for tag in tags:
             scores[tag] = scores.get(tag, 0.0) + weight
 

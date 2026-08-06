@@ -8,6 +8,7 @@ single_course; the combo shape needs >=2 matched courses, which only cold start'
 full candidate list can supply. Same function, different cardinality of input,
 consistent with Section 7.4's signature and Section 9's cert-only data access.
 """
+import json
 import time
 from pathlib import Path as FSPath
 
@@ -98,11 +99,20 @@ async def run(state: RecommendationState) -> dict:
         path_row = db.get(Path, decision["top_path"].item_id) if decision["top_path"] else None
         course_row = db.get(Product, decision["top_course"].item_id) if decision["top_course"] else None
         path_course_rows = [pc.course for pc in path_row.courses] if path_row else []
+        # The winning item's own tags — needed to check whether it actually
+        # spans both signals before the narrative is allowed to claim a
+        # "blend" (see _bridges_both below). Read here, inside the session,
+        # same reason as the rest of resolved_facts.
+        winning_tags = json.loads(
+            (path_row.tags if decision["shape"] == "curated_path" and path_row else
+             course_row.tags if course_row else "[]")
+        )
         # Build resolved_facts INSIDE the session — path_row/course_row are ORM
         # objects whose attributes expire once this session commits and closes,
         # so all attribute reads must happen before the `with` block exits.
         resolved_facts = _build_resolved_facts(
-            decision, path_row, course_row, path_course_rows, historical_top_tag, current_context_tag
+            decision, path_row, course_row, path_course_rows,
+            historical_top_tag, current_context_tag, winning_tags,
         )
         path_id = path_row.id if path_row else None
         course_id = course_row.id if course_row else None
@@ -115,8 +125,11 @@ async def run(state: RecommendationState) -> dict:
         f"pathTiles, courseTiles using ONLY the item names/prices/discounts given above. The "
         f"`reasoning` field must explicitly name the signals in resolved_facts['signals'] (if "
         f"present) — the user's historical interest and, when given, the category of the page "
-        f"they're currently on — and state plainly how this pick bridges them. `highlights` "
-        f"must be 3-5 short standalone bullet points, not a paragraph."
+        f"they're currently on. Only claim the pick 'blends' or 'bridges' both signals when "
+        f"`signals['bridges_both']` is true; when it is false, the pick matches just one of the "
+        f"two signals (usually the current page category) and the reasoning must say so plainly "
+        f"instead of claiming a blend that isn't real. `highlights` must be 3-5 short standalone "
+        f"bullet points, not a paragraph."
     )
 
     provider = get_provider()
@@ -135,6 +148,26 @@ async def run(state: RecommendationState) -> dict:
             events.solver_invoked(state["user_id"], latency_ms=latency_ms)
 
             output = SolverOutput(**raw)
+            # pathTiles/courseTiles carry defaults (Section 12.6's schema), so a
+            # Mesh response omitting them still passes SolverOutput validation —
+            # the model can (and has) written a narrative/highlights that name a
+            # specific pick while leaving its tile list empty, which the FE then
+            # renders as a card-less recommendation. Treat that the same as any
+            # other malformed structured output: retry once, then fall back.
+            needs_path = decision["shape"] == "curated_path"
+            # A curated_path decision carries a companion top_course whenever
+            # one exists (decision.py always attaches matched_courses[0]) —
+            # require its tile too, not just when the shape is combo/
+            # single_course, so the pick isn't inconsistently path-only on
+            # some runs and path+course on others depending on what the LLM
+            # felt like including.
+            needs_course = decision["shape"] in ("combo", "single_course") or (
+                decision["shape"] == "curated_path" and decision["top_course"] is not None
+            )
+            if needs_path and not output.pathTiles:
+                raise ValueError(f"Solver omitted pathTiles for shape={decision['shape']}")
+            if needs_course and not output.courseTiles:
+                raise ValueError(f"Solver omitted courseTiles for shape={decision['shape']}")
             # Stamp the real catalog id/kind onto whatever the LLM produced —
             # never trust an LLM-emitted id (Section 9's "no invented facts").
             if output.pathTiles and path_id:
@@ -171,12 +204,27 @@ async def run(state: RecommendationState) -> dict:
 def _build_resolved_facts(
     decision, path_row, course_row, path_course_rows,
     historical_top_tag: str = "", current_context_tag: str = "",
+    winning_tags: list[str] | None = None,
 ) -> dict:
     facts: dict = {"shape": decision["shape"]}
     if historical_top_tag or current_context_tag:
+        # Whether the winning item actually carries the historical tag itself
+        # (not just the current-page tag) — a single course/path with only one
+        # of the two signals in its own tags doesn't "blend" anything, even
+        # though both signals were used upstream to rank candidates. Only True
+        # licenses the solver to phrase this as bridging both; a plain
+        # same-tag case (historical == current) isn't a "blend" either, so it
+        # stays False and the reasoning falls back to a single-signal phrasing.
+        bridges_both = bool(
+            historical_top_tag
+            and current_context_tag
+            and historical_top_tag != current_context_tag
+            and historical_top_tag in (winning_tags or [])
+        )
         facts["signals"] = {
             "historical_interest": historical_top_tag or None,
             "current_page_category": current_context_tag or None,
+            "bridges_both": bridges_both,
         }
     if path_row:
         facts["path"] = {
