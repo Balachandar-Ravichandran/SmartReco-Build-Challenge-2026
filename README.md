@@ -356,4 +356,4 @@ real SMTP credentials exist.
 
 ---
 
-Built for the AI Engineering Hackathon 2026.
+Built for the SmartReco Build Challenge 2026.
